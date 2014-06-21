@@ -1,17 +1,18 @@
 package db
 
-type Model interface {
-	Id() (Id, error)
-	Save() (bool, error)
-	Marshal() ([]byte, error)
-}
-
-type Table interface {
-	Create(Attributes) (*Model, error)
-	Find(Id) (*Model, error)
-	Search(...interface{}) ([]Model, error)
-}
+type Database map[string]*Table
 
 type Attributes map[string]interface{}
 
 type Id string
+
+func (database Database) CreateTable(name string) {
+	//map[string]*Table(database)[name] = NewTable()
+	database[name] = NewTable()
+}
+
+type DBError string
+
+func (a DBError) Error() string {
+	return string(a)
+}

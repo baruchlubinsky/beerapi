@@ -2,25 +2,34 @@ package main
 
 import (
 	"net/http"
-	"time"
+	
 	"io/ioutil"
 	"encoding/json"
-	"crypto/sha256"
+	
 	"github.com/baruchlubinsky/beerapi/db"
-	"fmt"
-	"strconv"
+	
+	
 	"log"
+	
+	
 )
 
 
 type Beer struct {
-	Id db.Id `json:"id"`
+	id db.Id `json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"`
+	Comments []db.Id `json:"comments"`
 }
 
-type BeerTable struct {
-	data []*Beer
+type Comment struct {
+	Id db.Id `json:"id"`
+	Text string `json:"text"`
+	BeerId db.Id `json:"beer"`
+}
+
+type CommentTable struct {
+	data []*Comment
 	index map[db.Id]int
 }
 
@@ -32,63 +41,28 @@ func Unmarshal(data []byte) (db.Attributes, error) {
 	return object, err
 }
 
-func (beer *Beer) SetId() db.Id {
-	hash := strconv.Itoa(int(time.Now().Unix())) + beer.Name + beer.Type
-	raw := sha256.Sum256([]byte(hash))
-	beer.Id = db.Id(fmt.Sprintf("%v", raw))
-	return beer.Id
-}
-
-func (beer *Beer) Marshal() ([]byte, error) {
-	data := struct{
-		Beer Beer `json:"beer"`
-	}{
-		Beer: *beer,
-	}
-	return json.Marshal(data)
-}
-
 // Table Interface
 
-func (table *BeerTable) Init() {
-	table.data = make([]*Beer, 0, 10)
-	table.index = make(map[db.Id]int, 10)
-}
-
-func (table *BeerTable) Create(data db.Attributes) (beer *Beer, err error) {
-	fmt.Println(data)
-	beer = &Beer{
-		Name: data["name"].(string),
-    	Type: data["type"].(string),
-    }
-	table.data = append(table.data, beer)
-    table.index[beer.SetId()] = len(table.data) - 1
-    return
-}
-
-func (table *BeerTable) Find(id db.Id) (beer *Beer, err error) {
-	index, found := table.index[id]
-	if found {
-		return table.data[index], nil
-	} else {
-		return nil, ApiError("Object with that ID does not exist.")
-	}
-}
-
-
-var Db BeerTable
+var Db map[string]*db.Table
 
 func init() {
-	Db.Init()
+	Db = make(map[string]*db.Table)
+	//Db["beers"] = db.NewTable()
+	db.Database(Db).CreateTable("beers")
 }
 
 func get(response http.ResponseWriter, request *http.Request) {
 	id := request.URL.Path[len("/beers/"):]
-	beer, err := Db.Find(db.Id(id))
+	table, found := Db["beers"]
+	if !found {
+		response.WriteHeader(404)
+		return
+	}
+	record, err := table.Find(db.Id(id))
 	if err != nil {
 		response.WriteHeader(401)
 	} else {
-		resp, _ := beer.Marshal()
+		resp, _ := record.Marshal("beer")
 		response.Write(resp)
 	}
 }
@@ -98,11 +72,19 @@ func create(response http.ResponseWriter, request *http.Request) {
 	check(err)
 	object, err := Unmarshal(data)
 	check(err)
-	beer, err := Db.Create(object)
+	table, found := Db["beers"]
+	if !found {
+		response.WriteHeader(404)
+		return
+	}
+	record := table.NewRecord()
+	record.SetAttributes(object)
+	table.Save(record)
 	if err != nil {
 		response.WriteHeader(401)
 	} else {
-		resp, _ := beer.Marshal()
+		resp, err := record.Marshal("beer")
+		check(err)
 		response.Write(resp)
 	}
 }
