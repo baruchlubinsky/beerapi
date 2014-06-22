@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	
 	"github.com/baruchlubinsky/beerapi/db"
-	
-	
+	"strings"
+	//"github.com/gedex/inflector"
 	"log"
 	
 	
@@ -33,7 +33,9 @@ type CommentTable struct {
 	index map[db.Id]int
 }
 
-// Model Interface
+type Marshalable interface{
+	Marshal(string) ([]byte, error)
+}
 
 func Unmarshal(data []byte) (db.Attributes, error) {
 	var object db.Attributes
@@ -43,28 +45,60 @@ func Unmarshal(data []byte) (db.Attributes, error) {
 
 // Table Interface
 
-var Db map[string]*db.Table
+var Db db.Database
 
 func init() {
-	Db = make(map[string]*db.Table)
-	//Db["beers"] = db.NewTable()
-	db.Database(Db).CreateTable("beers")
+	//Db = make(map[string]*db.Table)
+	// Db["beers"] = db.NewTable()
+	Db.CreateTable("beers")
+	Db.CreateTable("comments")
 }
 
 func get(response http.ResponseWriter, request *http.Request) {
-	id := request.URL.Path[len("/beers/"):]
-	table, found := Db["beers"]
-	if !found {
+	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
+	log.Printf("GET: %#v\n", args)
+	log.Println(Db)
+	table := Db.Table(args[0])
+	var data Marshalable
+	var name string
+	if table == nil {
+		log.Println("Table not found.")
 		response.WriteHeader(404)
 		return
 	}
-	record, err := table.Find(db.Id(id))
-	if err != nil {
-		response.WriteHeader(401)
+	if len(args) == 1 {
+		query := request.URL.Query()
+		ids, q := query["ids[]"]
+		if q {
+			data = make(db.ModelSet, 0)
+			for _, id := range(ids) {
+				record, err := table.Find(db.Id(id))
+				if err != nil {
+					response.WriteHeader(404)
+					return
+				}
+				data = append(data.(db.ModelSet), record)
+			}
+		} else {
+			data = table.Search(nil)
+		}
+		name = args[0]
+		
+	} else if len(args) == 2 {
+		id := db.Id(args[1])
+		record, err := table.Find(db.Id(id))
+		if err != nil {
+			response.WriteHeader(404)
+			return
+		}
+		data = record
+		name = args[0][:len(args[0])]
 	} else {
-		resp, _ := record.Marshal("beer")
-		response.Write(resp)
+		response.WriteHeader(404)
+		return
 	}
+	resp, _ := data.Marshal(name)
+	response.Write(resp)
 }
 
 func create(response http.ResponseWriter, request *http.Request) {
@@ -72,8 +106,8 @@ func create(response http.ResponseWriter, request *http.Request) {
 	check(err)
 	object, err := Unmarshal(data)
 	check(err)
-	table, found := Db["beers"]
-	if !found {
+	table := Db.Table("beers")
+	if table == nil {
 		response.WriteHeader(404)
 		return
 	}
@@ -116,7 +150,7 @@ const PORT = ":8080"
 
 func main () {
 	log.Println("Connected to database. Listening on " + PORT)
-
+	log.Println(Db)
 	http.HandleFunc("/beers/", beer)
 	http.ListenAndServe(PORT, nil)
 }

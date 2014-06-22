@@ -15,6 +15,8 @@ type Model struct {
 	table *Table
 }
 
+type ModelSet []*Model
+
 func (model *Model) SetId() Id {
 	hash := strconv.Itoa(int(time.Now().Unix())) + fmt.Sprint(model)
 	raw := sha256.Sum256([]byte(hash))
@@ -35,6 +37,15 @@ func (model *Model) SetAttributes(attributes Attributes) {
 
 func (model *Model) Marshal(name string) ([]byte, error) {
 	data := map[string]interface{}{name: model.data}
+	return json.Marshal(data)
+}
+
+func (set ModelSet) Marshal(name string) ([]byte, error) {
+	rows := make([]interface{}, len(set))
+	for i, model := range set {
+		rows[i] = map[string]interface{}{name: model.data}
+	}
+	data := map[string]interface{}{name: rows}
 	return json.Marshal(data)
 }
 

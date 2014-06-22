@@ -1,14 +1,22 @@
 package db
 
-type Database map[string]*Table
+type Database struct{
+	tables map[string]*Table
+}
 
 type Attributes map[string]interface{}
 
 type Id string
 
-func (database Database) CreateTable(name string) {
-	//map[string]*Table(database)[name] = NewTable()
-	database[name] = NewTable()
+func (database *Database) CreateTable(name string) {
+	if database.tables == nil {
+		database.tables = make(map[string]*Table)
+	}
+	database.tables[name] = NewTable()
+}
+
+func (database *Database) Table(name string) *Table {
+	return database.tables[name]
 }
 
 type DBError string

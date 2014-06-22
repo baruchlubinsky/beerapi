@@ -43,9 +43,9 @@ func (table *Table) Find(id Id) (model *Model, err error) {
 	}
 }
 
-func (table *Table) Search(query Attributes) (result []*Model) {
+func (table *Table) Search(query Attributes) (result ModelSet) {
 	for _, model := range table.data {
-		match := false
+		match := query == nil
 		for key, value := range query {
 			if !reflect.DeepEqual(model.Attributes()[key], value) {
 				break
