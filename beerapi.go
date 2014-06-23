@@ -14,7 +14,6 @@ import (
 	
 )
 
-
 type Beer struct {
 	id db.Id `json:"id"`
 	Name string `json:"name"`
@@ -43,7 +42,34 @@ func Unmarshal(data []byte) (db.Attributes, error) {
 	return object, err
 }
 
-// Table Interface
+// Database interface 
+
+type Id string
+
+type Attributes db.Attributes
+
+type DatabaseAdapter interface {
+	CreateTable(string)
+	Table(string) *TableAdapter
+}
+
+type TableAdapter interface {
+	Find(id string) (ModelAdapter, error)
+	Search(query Attributes) (result ModelSetAdapter)
+	NewRecord() (ModelAdapter)
+}
+
+type ModelAdapter interface {
+	SetId() string
+	Attributes() interface{}
+	SetAttributes(interface{})
+	Marshal(string) ([]byte, error)
+	Save() (error)
+}
+
+type ModelSetAdapter interface {
+	Marshal(string) ([]byte, error)
+}
 
 var Db db.Database
 
@@ -59,7 +85,7 @@ func get(response http.ResponseWriter, request *http.Request) {
 	log.Printf("GET: %#v\n", args)
 	log.Println(Db)
 	table := Db.Table(args[0])
-	var data Marshalable
+	var data interface{}
 	var name string
 	if table == nil {
 		log.Println("Table not found.")
@@ -70,23 +96,22 @@ func get(response http.ResponseWriter, request *http.Request) {
 		query := request.URL.Query()
 		ids, q := query["ids[]"]
 		if q {
-			data = make(db.ModelSet, 0)
+			data = make([]ModelAdapter, 0)
 			for _, id := range(ids) {
-				record, err := table.Find(db.Id(id))
+				record, err := table.Find(id)
 				if err != nil {
 					response.WriteHeader(404)
 					return
 				}
-				data = append(data.(db.ModelSet), record)
+				data = append(data.([]ModelAdapter), record)
 			}
 		} else {
 			data = table.Search(nil)
 		}
 		name = args[0]
-		
 	} else if len(args) == 2 {
-		id := db.Id(args[1])
-		record, err := table.Find(db.Id(id))
+		id := args[1]
+		record, err := table.Find(id)
 		if err != nil {
 			response.WriteHeader(404)
 			return
@@ -97,7 +122,7 @@ func get(response http.ResponseWriter, request *http.Request) {
 		response.WriteHeader(404)
 		return
 	}
-	resp, _ := data.Marshal(name)
+	resp, _ := data.(Marshalable).Marshal(name)
 	response.Write(resp)
 }
 
@@ -124,6 +149,10 @@ func create(response http.ResponseWriter, request *http.Request) {
 }
 
 func beer(response http.ResponseWriter, request *http.Request) {
+	header := response.Header()
+	header.Add("Access-Control-Allow-Origin","*")
+	header.Add("Access-Control-Allow-Methods","*")
+	log.Println(request)
 	switch request.Method {
 	case "POST": 
 		create(response, request)
@@ -146,11 +175,10 @@ func (a ApiError) Error() string {
 	return string(a)
 }
 
-const PORT = ":8080"
+const PORT = ":9000"
 
 func main () {
 	log.Println("Connected to database. Listening on " + PORT)
-	log.Println(Db)
-	http.HandleFunc("/beers/", beer)
+	http.HandleFunc("/beers", beer)
 	http.ListenAndServe(PORT, nil)
 }

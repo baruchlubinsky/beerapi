@@ -34,8 +34,8 @@ func (table *Table) Save(model *Model) (err error) {
     return
 }
 
-func (table *Table) Find(id Id) (model *Model, err error) {
-	index, found := table.index[id]
+func (table *Table) Find(id string) (model *Model, err error) {
+	index, found := table.index[Id(id)]
 	if found {
 		return table.data[index], nil
 	} else {
@@ -47,7 +47,7 @@ func (table *Table) Search(query Attributes) (result ModelSet) {
 	for _, model := range table.data {
 		match := query == nil
 		for key, value := range query {
-			if !reflect.DeepEqual(model.Attributes()[key], value) {
+			if !reflect.DeepEqual(model.Attributes().(Attributes)[key], value) {
 				break
 			}
 			match = true

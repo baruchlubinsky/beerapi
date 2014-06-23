@@ -17,20 +17,20 @@ type Model struct {
 
 type ModelSet []*Model
 
-func (model *Model) SetId() Id {
+func (model *Model) SetId() string {
 	hash := strconv.Itoa(int(time.Now().Unix())) + fmt.Sprint(model)
 	raw := sha256.Sum256([]byte(hash))
 	model.Id = Id(fmt.Sprintf("%v", hex.EncodeToString(raw[:16])))
 	model.data["id"] = model.Id
-	return model.Id
+	return string(model.Id)
 }
 
-func (model *Model) Attributes() Attributes {
+func (model *Model) Attributes() interface{} {
 	return model.data
 }
 
-func (model *Model) SetAttributes(attributes Attributes) {
-	for key, value := range(attributes) {
+func (model *Model) SetAttributes(attributes interface{}) {
+	for key, value := range(attributes.(Attributes)) {
 		model.data[key] = value
 	}
 }
@@ -43,7 +43,7 @@ func (model *Model) Marshal(name string) ([]byte, error) {
 func (set ModelSet) Marshal(name string) ([]byte, error) {
 	rows := make([]interface{}, len(set))
 	for i, model := range set {
-		rows[i] = map[string]interface{}{name: model.data}
+		rows[i] = model.data
 	}
 	data := map[string]interface{}{name: rows}
 	return json.Marshal(data)
