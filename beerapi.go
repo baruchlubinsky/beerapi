@@ -14,32 +14,32 @@ import (
 	
 )
 
-type Beer struct {
-	id db.Id `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Comments []db.Id `json:"comments"`
-}
+// type Beer struct {
+// 	id db.Id `json:"id"`
+// 	Name string `json:"name"`
+// 	Type string `json:"type"`
+// 	Comments []db.Id `json:"comments"`
+// }
 
-type Comment struct {
-	Id db.Id `json:"id"`
-	Text string `json:"text"`
-	BeerId db.Id `json:"beer"`
-}
+// type Comment struct {
+// 	Id db.Id `json:"id"`
+// 	Text string `json:"text"`
+// 	BeerId db.Id `json:"beer"`
+// }
 
-type CommentTable struct {
-	data []*Comment
-	index map[db.Id]int
-}
+// type CommentTable struct {
+// 	data []*Comment
+// 	index map[db.Id]int
+// }
 
 type Marshalable interface{
 	Marshal(string) ([]byte, error)
 }
 
-func Unmarshal(data []byte) (db.Attributes, error) {
-	var object db.Attributes
+func Unmarshal(data []byte, name string) (db.Attributes, error) {
+	var object map[string]interface{}
 	err := json.Unmarshal(data, &object)
-	return object, err
+	return db.Attributes(object[name].(map[string]interface{})), err
 }
 
 // Database interface 
@@ -82,8 +82,6 @@ func init() {
 
 func get(response http.ResponseWriter, request *http.Request) {
 	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
-	log.Printf("GET: %#v\n", args)
-	log.Println(Db)
 	table := Db.Table(args[0])
 	var data interface{}
 	var name string
@@ -129,7 +127,8 @@ func get(response http.ResponseWriter, request *http.Request) {
 func create(response http.ResponseWriter, request *http.Request) {
 	data, err := ioutil.ReadAll(request.Body)
 	check(err)
-	object, err := Unmarshal(data)
+	log.Println(string(data))
+	object, err := Unmarshal(data, "beer")
 	check(err)
 	table := Db.Table("beers")
 	if table == nil {
@@ -148,16 +147,57 @@ func create(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func put(response http.ResponseWriter, request *http.Request) {
+	log.Println("called put")
+	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
+	name := args[0]
+	table := Db.Table(name)
+	if table == nil {
+		log.Println("Table not found.")
+		response.WriteHeader(404)
+		return
+	}
+	data, err := ioutil.ReadAll(request.Body)
+	check(err)
+	log.Println(string(data))
+	object, err := Unmarshal(data, name[0:len(name) - 1])
+	check(err)
+	if len(args) == 2 {
+		id := args[1]
+		record, err := table.Find(id)
+		if err != nil {
+			response.WriteHeader(404)
+			return
+		}
+		record.SetAttributes(object)
+		record.Save()
+		resp, _ := record.Marshal(name[0:len(name) - 1])
+		response.Write(resp)
+	} else {
+		log.Println("No id")
+		response.WriteHeader(500)
+		return
+	}
+}
+
 func beer(response http.ResponseWriter, request *http.Request) {
 	header := response.Header()
+	header.Set("Content-Type", "application/json")
+	// CORS
 	header.Add("Access-Control-Allow-Origin","*")
-	header.Add("Access-Control-Allow-Methods","*")
-	log.Println(request)
+	header.Add("Access-Control-Allow-Methods","POST, PUT, DELETE, GET, OPTIONS")
+	header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, content-type, Accept, X-AUTH-TOKEN, X-API-VERSION")
+	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
+	log.Printf("%v: %#v\n", request.Method, args)
 	switch request.Method {
 	case "POST": 
 		create(response, request)
 	case "GET":
 		get(response, request) 
+	case "PUT":
+		put(response, request)
+	case "OPTIONS":
+		response.WriteHeader(200)
 	default:
 		response.WriteHeader(400)
 	}
@@ -179,6 +219,6 @@ const PORT = ":9000"
 
 func main () {
 	log.Println("Connected to database. Listening on " + PORT)
-	http.HandleFunc("/beers", beer)
+	http.HandleFunc("/", beer)
 	http.ListenAndServe(PORT, nil)
 }
