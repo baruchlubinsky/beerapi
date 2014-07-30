@@ -94,14 +94,14 @@ func get(response http.ResponseWriter, request *http.Request) {
 		query := request.URL.Query()
 		ids, q := query["ids[]"]
 		if q {
-			data = make([]ModelAdapter, 0)
+			data = make(db.ModelSet, 0)
 			for _, id := range(ids) {
 				record, err := table.Find(id)
 				if err != nil {
 					response.WriteHeader(404)
 					return
 				}
-				data = append(data.([]ModelAdapter), record)
+				data = append(data.(db.ModelSet), record)
 			}
 		} else {
 			data = table.Search(nil)
@@ -115,7 +115,7 @@ func get(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		data = record
-		name = args[0][:len(args[0])]
+		name = args[0][:len(args[0]) - 1]
 	} else {
 		response.WriteHeader(404)
 		return
@@ -125,30 +125,32 @@ func get(response http.ResponseWriter, request *http.Request) {
 }
 
 func create(response http.ResponseWriter, request *http.Request) {
-	data, err := ioutil.ReadAll(request.Body)
-	check(err)
-	log.Println(string(data))
-	object, err := Unmarshal(data, "beer")
-	check(err)
-	table := Db.Table("beers")
+	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
+	name := args[0]
+	table := Db.Table(name)
 	if table == nil {
+		log.Println("Table not found.")
 		response.WriteHeader(404)
 		return
 	}
+	data, err := ioutil.ReadAll(request.Body)
+	check(err)
+	log.Println(string(data))
+	object, err := Unmarshal(data, name[0:len(name) - 1])
+	check(err)
 	record := table.NewRecord()
 	record.SetAttributes(object)
 	table.Save(record)
 	if err != nil {
 		response.WriteHeader(401)
 	} else {
-		resp, err := record.Marshal("beer")
+		resp, err := record.Marshal(name[0:len(name) - 1])
 		check(err)
 		response.Write(resp)
 	}
 }
 
 func put(response http.ResponseWriter, request *http.Request) {
-	log.Println("called put")
 	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
 	name := args[0]
 	table := Db.Table(name)
