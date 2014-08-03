@@ -14,6 +14,7 @@ type Database struct{
 
 type Id string
 
+// Create a table in the database with specified name.
 func (database *Database) CreateTable(name string) {
 	if database.tables == nil {
 		database.tables = make(map[string]*Table)
@@ -21,6 +22,7 @@ func (database *Database) CreateTable(name string) {
 	database.tables[name] = NewTable(name)
 }
 
+// Get the table with specified name, returns nil if that table does not exist.
 func (database *Database) Table(name string) adapters.Table {
 	return database.tables[name]
 }

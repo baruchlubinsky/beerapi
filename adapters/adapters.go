@@ -1,5 +1,5 @@
 // Package adapters contains the interfaces required to define a general
-// database adapter.
+// database adapter. See beerapi/db for documentation.
 package adapters
 
 type Database interface {

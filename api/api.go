@@ -38,10 +38,10 @@ func Unmarshal(data []byte, name string) (map[string]interface{}, error) {
 }
 
 // Handle a GET request. This function supports three options:
-//    GET /beers/ - returns all the records in the beers table.
-//    GET /beers/:id - returns the beer with specified id
-//    GET /beers?ids[]=1&ids[]=2 - returns all the specified beer records.
-//        see http://emberjs.com/api/data/classes/DS.RESTAdapter.html#method_findMany
+//    - GET /beers/ - returns all the records in the beers table.
+//    - GET /beers/:id - returns the beer with specified id
+//    - GET /beers?ids[]=1&ids[]=2 - returns all the specified beer records.
+//         see http://emberjs.com/api/data/classes/DS.RESTAdapter.html#method_findMany
 //
 // If an id is specified but not found, returns a 404 error.
 //
@@ -103,7 +103,7 @@ func Post(dbTable adapters.Table, response http.ResponseWriter, request *http.Re
 }
 
 // Handle a PUT request. 
-//    PUT /beers/:id
+//    - PUT /beers/:id
 // 
 // If no id is specified returns a 400 error.
 //
@@ -142,7 +142,7 @@ func Put(dbTable adapters.Table, response http.ResponseWriter, request *http.Req
 }
 
 // Handle a DELETE request. 
-//    DELETE /beers/:id
+//    - DELETE /beers/:id
 // 
 // If no id is specified returns a 400 error.
 //
