@@ -5,13 +5,12 @@ import (
 	"crypto/sha256"
 	"strconv"
 	"fmt"
-	"encoding/json"
 	"encoding/hex"
 )
 
 type Model struct {
 	Id Id
-	data Attributes
+	data map[string]interface{}
 	table *Table
 }
 
@@ -30,25 +29,15 @@ func (model *Model) Attributes() interface{} {
 }
 
 func (model *Model) SetAttributes(attributes interface{}) {
-	for key, value := range(attributes.(Attributes)) {
+	for key, value := range(attributes.(map[string]interface{})) {
 		model.data[key] = value
 	}
 }
 
-func (model *Model) Marshal(name string) ([]byte, error) {
-	data := map[string]interface{}{name: model.data}
-	return json.Marshal(data)
-}
-
-func (set ModelSet) Marshal(name string) ([]byte, error) {
-	rows := make([]interface{}, len(set))
-	for i, model := range set {
-		rows[i] = model.data
-	}
-	data := map[string]interface{}{name: rows}
-	return json.Marshal(data)
-}
-
 func (model *Model) Save() (error) {
 	return model.table.Save(model)
+}
+
+func (model *Model) Delete() (error) {
+	return model.table.Delete(string(model.Id))
 }

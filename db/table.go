@@ -2,17 +2,21 @@ package db
 
 import (
 	"reflect"
+	"github.com/baruchlubinsky/beerapi/adapters"
 )
 
 type Table struct {
 	data []*Model
 	index map[Id]int
+	singular, plural string
 }
 
-func NewTable() *Table {
+func NewTable(name string) *Table {
 	res := Table {
 		data: make([]*Model, 0),
 		index: make(map[Id]int),
+		plural: name,
+		singular: name[0:len(name) - 1],
 	}
 	return &res
 }
@@ -34,7 +38,7 @@ func (table *Table) Save(model *Model) (err error) {
     return
 }
 
-func (table *Table) Find(id string) (model *Model, err error) {
+func (table *Table) Find(id string) (model adapters.Model, err error) {
 	index, found := table.index[Id(id)]
 	if found {
 		return table.data[index], nil
@@ -43,25 +47,52 @@ func (table *Table) Find(id string) (model *Model, err error) {
 	}
 }
 
-func (table *Table) Search(query Attributes) (result ModelSet) {
-	for _, model := range table.data {
+func (table *Table) Search(query interface{}) (result adapters.ModelSet) {
+	result = make(adapters.ModelSet, 0)
+	for _, model := range table.All() {
 		match := query == nil
-		for key, value := range query {
-			if !reflect.DeepEqual(model.Attributes().(Attributes)[key], value) {
+		for key, value := range query.(map[string]interface{}) {
+			if !reflect.DeepEqual(model.(*Model).data[key], value) {
 				break
 			}
 			match = true
 		}
 		if match {
-			result = append(result, model)
+			result.Add(model)
 		}
 	}
 	return
 }
 
-func (table *Table) NewRecord() (*Model) {
+func (table *Table) All() (result adapters.ModelSet) {
+	result = make(adapters.ModelSet, 0)
+	for _, index := range table.index {
+		result.Add(table.data[index])
+	}
+	return
+}
+
+func (table *Table) NewRecord() (adapters.Model) {
 	return &Model{
 		table: table,
 		data: make(map[string]interface{}),
 	}
+}
+
+func (table *Table) Delete(id string) (error) {
+	if index, found := table.index[Id(id)]; found {
+		table.data[index] = nil
+		delete(table.index, Id(id))
+		return nil
+	} else {
+		return DBError("Object with that ID does not exist.")
+	}
+}
+
+func (table *Table) RecordName() string {
+	return table.singular
+}
+
+func (table *Table) RecordSetName() string {
+	return table.plural
 }
