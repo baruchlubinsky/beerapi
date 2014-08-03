@@ -1,3 +1,5 @@
+// Package adapters contains the interfaces required to define a general
+// database adapter.
 package adapters
 
 type Database interface {
@@ -7,7 +9,8 @@ type Database interface {
 
 type Table interface {
 	Find(string) (Model, error)
-	Search(query interface{}) (result ModelSet)
+	// If query == nil, return entire contents of table.
+	Search(query interface{}) (result ModelSet) 
 	NewRecord() (Model)
 	Delete(string) (error)
 	RecordName() (string)
@@ -15,7 +18,7 @@ type Table interface {
 }
 
 type Model interface {
-	SetId() string
+	GetId() string
 	Attributes() interface{}
 	SetAttributes(interface{})
 	Save() (error)
@@ -24,6 +27,8 @@ type Model interface {
 
 type ModelSet []Model 
 
-func (set ModelSet) Add(model Model) {
-	set = append(set, model)
+func (set *ModelSet) Add(model Model) {
+	s := *set
+	s = append(s, model)
+	*set = s 
 }

@@ -1,3 +1,5 @@
+// This program is intended only as an example of the usage of the 
+// beerapi/api package.
 package main
 
 import (
@@ -33,7 +35,7 @@ func beer(response http.ResponseWriter, request *http.Request) {
 	}
 	switch request.Method {
 	case "POST": 
-		api.Create(table, response, request)
+		api.Post(table, response, request)
 	case "GET":
 		api.Get(table, response, request) 
 	case "PUT":

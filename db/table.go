@@ -22,17 +22,11 @@ func NewTable(name string) *Table {
 }
 
 func (table *Table) Save(model *Model) (err error) {
-	if model.Id == "" {
-		model.SetId()
-	}
-	index, found := table.index[model.Id]
+	index, found := table.index[Id(model.GetId())]
 	if found {
 		table.data[index] = model
 	} else {
 		table.data = append(table.data, model)
-		// if table.index == nil {
-		// 	table.index = make(map[Id]int)
-		// }
 		table.index[model.Id] = len(table.data) - 1
 	} 
     return
@@ -48,18 +42,23 @@ func (table *Table) Find(id string) (model adapters.Model, err error) {
 }
 
 func (table *Table) Search(query interface{}) (result adapters.ModelSet) {
-	result = make(adapters.ModelSet, 0)
-	for _, model := range table.All() {
-		match := query == nil
-		for key, value := range query.(map[string]interface{}) {
-			if !reflect.DeepEqual(model.(*Model).data[key], value) {
-				break
+	q, provided := query.(map[string]interface{})
+	if provided {
+		result = make(adapters.ModelSet, 0)
+		for _, model := range table.All() {
+			match := false
+			for key, value := range q {
+				if !reflect.DeepEqual(model.(*Model).data[key], value) {
+					break
+				}
+				match = true
 			}
-			match = true
+			if match {
+				result.Add(model)
+			}
 		}
-		if match {
-			result.Add(model)
-		}
+	} else {
+		result = table.All()
 	}
 	return
 }

@@ -16,7 +16,14 @@ type Model struct {
 
 type ModelSet []*Model
 
-func (model *Model) SetId() string {
+func (model *Model) GetId() string {
+	if model.Id == "" {
+		model.setId()
+	}
+	return string(model.Id)
+}
+
+func (model *Model) setId() string {
 	hash := strconv.Itoa(int(time.Now().Unix())) + fmt.Sprint(model)
 	raw := sha256.Sum256([]byte(hash))
 	model.Id = Id(fmt.Sprintf("%v", hex.EncodeToString(raw[:16])))
