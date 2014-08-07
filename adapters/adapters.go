@@ -3,8 +3,8 @@
 package adapters
 
 type Database interface {
-	CreateTable(string)
-	Table(string) Table
+	CreateTable(string) Table
+	Table(string) (Table, error)
 }
 
 type Table interface {

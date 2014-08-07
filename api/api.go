@@ -1,4 +1,4 @@
-// Package api implements the REST verbs. It also conatains functions for 
+// Package api implements the REST verbs. It also contains functions for 
 // serializing and deserialing models as JSON. This pacakge is independant
 // of the implementation of the database adapter.
 package api

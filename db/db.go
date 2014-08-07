@@ -15,16 +15,21 @@ type Database struct{
 type Id string
 
 // Create a table in the database with specified name.
-func (database *Database) CreateTable(name string) {
+func (database *Database) CreateTable(name string) (adapters.Table) {
 	if database.tables == nil {
 		database.tables = make(map[string]*Table)
 	}
 	database.tables[name] = NewTable(name)
+	return database.tables[name]
 }
 
 // Get the table with specified name, returns nil if that table does not exist.
-func (database *Database) Table(name string) adapters.Table {
-	return database.tables[name]
+func (database *Database) Table(name string) (adapters.Table, error) {
+	table, found := database.tables[name]
+	if found {
+		return table, nil
+	}
+	return nil, DBError("Table not found.")
 }
 
 type DBError string

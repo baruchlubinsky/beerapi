@@ -15,8 +15,6 @@ var Db adapters.Database
 
 func init() {
 	Db = &db.Database{}
-	Db.CreateTable("beers")
-	Db.CreateTable("comments")
 }
 
 func beer(response http.ResponseWriter, request *http.Request) {
@@ -27,12 +25,7 @@ func beer(response http.ResponseWriter, request *http.Request) {
 	header.Add("Access-Control-Allow-Methods","POST, PUT, DELETE, GET, OPTIONS")
 	header.Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, content-type, Accept, X-AUTH-TOKEN, X-API-VERSION")
 	// Check for table 
-	table, err := tableFor(request)
-	if err != nil {
-		response.Write([]byte(err.Error()))
-		response.WriteHeader(404)
-		return
-	}
+	table := tableFor(request)
 	switch request.Method {
 	case "POST": 
 		api.Post(table, response, request)
@@ -49,14 +42,14 @@ func beer(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func tableFor(request *http.Request) (adapters.Table, error) {
+func tableFor(request *http.Request) (adapters.Table) {
 	args := strings.Split(strings.Trim(request.URL.Path, "/"), "/")
 	name := args[0]
-	table := Db.Table(name)
-	if table == nil {
-		return nil, db.DBError("Table not found: " + name)
+	table, err := Db.Table(name)
+	if err != nil {
+		return Db.CreateTable(name)
 	}
-	return table, nil
+	return table
 }
 
 const PORT = ":9000"
