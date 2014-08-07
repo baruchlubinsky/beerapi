@@ -9,14 +9,14 @@ The tables that the server will handle must be defined in `init`. (This could ea
 
 The `db` package in this repository is simply an example implimentation of the interfaces in `adapters`. It has no persistence. To use a different database, replace the line `Db = &db.Database{}`.
 
-Find the Ember application demonstrating Ember Data which is designed together with this backend at baruchlubinsky/beerdemo .
+Find the Ember application demonstrating Ember Data which is designed together with this backend at [baruchlubinsky/beerdemo](https://github.com/baruchlubinsky/beerdemo).
 
 App Engine
 ==
 
 Use this package on [App Engine](https://developers.google.com/appengine/docs/go/gettingstarted/introduction).
 
-Simply copy beerapi.go, move `http.HandleFunc("/", beer)` into `init()` and delete `main()`.
+Create a directory for your app. Simply copy `beerapi.go` as the main file, move `http.HandleFunc("/", beer)` into `init()` and delete `main()`.
 
 Create a `dispatch.yaml` with:
 
