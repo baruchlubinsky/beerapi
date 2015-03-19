@@ -3,7 +3,6 @@
 package adapters
 
 type Database interface {
-	CreateTable(string) Table
 	Table(string) (Table, error)
 }
 
